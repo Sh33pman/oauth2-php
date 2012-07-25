@@ -7,10 +7,10 @@
  * Obviously not production-ready code, just simple and to the point.
  */
 
-require "lib/MongoOAuth2.php";
+require "lib/OAuth2StorageMongo.php";
 
 if ($_POST && isset($_POST["client_id"]) && isset($_POST["client_secret"]) && isset($_POST["redirect_uri"])) {
-	$oauth = new MongoOAuth2();
+	$oauth = new OAuth2StorageMongo();
 	$oauth->addClient($_POST["client_id"], $_POST["client_secret"], $_POST["redirect_uri"]);
 }
 

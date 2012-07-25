@@ -9,12 +9,12 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/MongoOAuth2.php";
+require "lib/OAuth2StorageMongo.php";
 
-$oauth = new MongoOAuth2();
+$oauth = $oauth = new OAuth2(new OAuth2StorageMongo());
 
 if ($_POST) {
-	$oauth->finishClientAuthorization($_POST["accept"] == "Yep", $_POST);
+	$oauth->finishClientAuthorization($_POST["accept"] == "Yep", "ThaUserId", $_POST);
 }
 
 try {

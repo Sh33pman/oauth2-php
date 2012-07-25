@@ -23,11 +23,13 @@ class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 	 * Change this to something unique for your system
 	 * @var string
 	 */
-	const SALT = 'CHANGE_ME!';
+	const SALT = 'Meh!';
 	
-	const CONNECTION = 'mongodb://user:pass@mongoserver/mydb';
-	const DB = 'mydb';
+	const CONNECTION = 'mongodb://10.0.0.112/johannesOAuth2Test';
+	const DB = 'johannesOAuth2Test';
 	
+	const COLLECTION_TOKENS  = 'access_tokens';
+	const COLLECTION_REFRESH = 'refresh_tokens';
 	/**
 	 * @var Mongo
 	 */
@@ -36,7 +38,7 @@ class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 	/**
 	 * Implements OAuth2::__construct().
 	 */
-	public function __construct(PDO $db) {
+	public function __construct() {
 		
 		$mongo = new Mongo(self::CONNECTION);
 		$this->db = $mongo->selectDB(self::DB);
@@ -76,15 +78,15 @@ class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 	 *
 	 */
 	public function checkClientCredentials($client_id, $client_secret = NULL) {
-		$client = $this->db->clients->findOne(array("_id" => $client_id, "pw" => $client_secret));
-		return $this->checkPassword($client_secret, $result['client_secret'], $client_id);
+		$result = $this->db->clients->findOne(array("_id" => $client_id));
+		return $this->checkPassword($result['pw'], $client_secret, $client_id);
 	}
 
 	/**
 	 * Implements IOAuth2Storage::getRedirectUri().
 	 */
 	public function getClientDetails($client_id) {
-		$result = $this->db->clients->findOne(array("_id" => $client_id), array("redirect_uri"));
+		return $this->db->clients->findOne(array("_id" => $client_id), array("redirect_uri"));
 	}
 
 	/**
@@ -115,6 +117,32 @@ class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 		return $this->setToken($refresh_token, $client_id, $user_id, $expires, $scope, TRUE);
 	}
 
+	/**
+	 * Creates a refresh or access token
+	 * 
+	 * @param string $token - Access or refresh token id
+	 * @param string $client_id
+	 * @param mixed $user_id
+	 * @param int $expires
+	 * @param string $scope
+	 * @param bool $isRefresh
+	 */
+	protected function setToken($token, $client_id, $user_id, $expires, $scope, $isRefresh = TRUE) {
+		try {
+			$collectionName = $isRefresh ? self::COLLECTION_REFRESH :  self::COLLECTION_TOKENS;
+			$collection = $this->db->selectCollection($collectionName);
+			$collection->insert(array(
+				'_id' => $token,
+				'client_id' => $client_id,
+				'user_id' => $user_id,
+				'expires' => $expires,
+				'scope' => $scope
+			));
+		} catch (Exception $e) {
+			$this->handleException($e);
+		}
+	}
+	
 	/**
 	 * @see IOAuth2Storage::unsetRefreshToken()
 	 */
@@ -158,7 +186,7 @@ class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 	 * @return string
 	 */
 	protected function hash($client_secret, $client_id) {
-		return hash('blowfish', $client_id . $client_secret . self::SALT);
+		return hash('md5', $client_id . $client_secret . self::SALT);
 	}
 
 	/**
